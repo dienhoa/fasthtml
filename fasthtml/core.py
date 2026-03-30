@@ -60,6 +60,8 @@ htmx_hdrs = dict(
     history_restore_request="HX-History-Restore-Request",
     prompt="HX-Prompt",
     request="HX-Request",
+    request_type="HX-Request-Type", # v4: partial or full update
+    source="HX-Source", # v4: replaces v2 HX-Trigger but with tag#id instead just id
     target="HX-Target",
     trigger_name="HX-Trigger-Name",
     trigger="HX-Trigger")
@@ -67,7 +69,8 @@ htmx_hdrs = dict(
 @dataclass
 class HtmxHeaders:
     boosted:str|None=None; current_url:str|None=None; history_restore_request:str|None=None; prompt:str|None=None
-    request:str|None=None; target:str|None=None; trigger_name:str|None=None; trigger:str|None=None
+    request:str|None=None; request_type:str|None=None; source:str|None=None; target:str|None=None; 
+    trigger_name:str|None=None; trigger:str|None=None
     def __bool__(self): return any(hasattr(self,o) for o in htmx_hdrs)
 
 def _get_htmx(h):
@@ -227,6 +230,7 @@ async def _find_p(conn, data, hdrs, arg:str, p:Parameter):
     if res in (empty,None): res = conn.query_params.getlist(arg)
     if res==[]: res = None
     if res in (empty,None): res = data.get(arg, None)
+    if res in (empty, None) and conn.scope['app'].htmx4: res = data.get('values', {}).get(arg, None) 
     if res in (empty,None):
         if p.default is empty:
             if isinstance(conn, Request): raise HTTPException(400, f"Missing required field: {arg}")
@@ -267,7 +271,7 @@ async def _handle(f, *args, **kwargs):
 
 # %% ../nbs/api/00_core.ipynb #ad0f0e87
 async def _wrap_ws(ws, data, params):
-    hdrs = Headers({k.lower():v for k,v in data.pop('HEADERS', {}).items()})
+    hdrs = Headers({k.lower():v for k,v in (data.pop('HEADERS', {}) or data.pop('headers', {})).items()})
     return await _find_ps(ws, data, hdrs, params)
 
 # %% ../nbs/api/00_core.ipynb #dcc15129
@@ -496,7 +500,9 @@ htmx_exts = {
     "remove-me": "https://cdn.jsdelivr.net/npm/htmx-ext-remove-me@2.0.0/remove-me.js",
     "debug": "https://unpkg.com/htmx.org@1.9.12/dist/ext/debug.js",
     "ws": "https://cdn.jsdelivr.net/npm/htmx-ext-ws@2.0.3/ws.js",
-    "chunked-transfer": "https://cdn.jsdelivr.net/npm/htmx-ext-transfer-encoding-chunked@0.4.0/transfer-encoding-chunked.js"
+    "ws4": "https://unpkg.com/htmx.org@4.0.0-alpha8/dist/ext/hx-ws.js",
+    "chunked-transfer": "https://cdn.jsdelivr.net/npm/htmx-ext-transfer-encoding-chunked@0.4.0/transfer-encoding-chunked.js",
+    "sse4": "https://unpkg.com/htmx.org@4.0.0-alpha8/dist/ext/hx-sse.js"
 }
 
 # %% ../nbs/api/00_core.ipynb #60cb52ea
@@ -545,11 +551,17 @@ def qp(p:str, **kw) -> str:
     return p + ('?' + urlencode({k:'' if v in (False,None) else v for k,v in kw.items()},doseq=True) if kw else '')
 
 # %% ../nbs/api/00_core.ipynb #f86690c4
-def def_hdrs(htmx=True, surreal=True):
+def def_hdrs(htmx=True, htmx4=False, surreal=True):
     "Default headers for a FastHTML app"
     hdrs = []
     if surreal: hdrs = [surrsrc,scopesrc] + hdrs
+    if htmx and htmx4: raise ValueError("Cannot enable both htmx and htmx4")
     if htmx: hdrs = [htmxsrc,fhjsscr] + hdrs
+    if htmx4: 
+        # metaCharacter="-" makes htmx4 use dashes instead of colons
+        meta_cfg = Meta(name="htmx-config", content=json.dumps({"metaCharacter": "-"}))
+        hdrs = [meta_cfg, htmx4src,fhjsscr] + hdrs 
+    # TODO: Check if fhjsscr works with htmx4
     return [charset, viewport] + hdrs
 
 # %% ../nbs/api/00_core.ipynb #2c5285ae
@@ -597,19 +609,22 @@ class Lifespan:
 class FastHTML(Starlette):
     def __init__(self, debug=False, routes=None, middleware=None, title: str = "FastHTML page", exception_handlers=None,
                  on_startup=None, on_shutdown=None, lifespan=None, hdrs=None, ftrs=None, exts=None,
-                 before=None, after=None, surreal=True, htmx=True, default_hdrs=True, sess_cls=SessionMiddleware,
+                 before=None, after=None, surreal=True, htmx=True, htmx4=True, default_hdrs=True, sess_cls=SessionMiddleware,
                  secret_key=None, session_cookie='session_', max_age=365*24*3600, sess_path='/',
                  same_site='lax', sess_https_only=False, sess_domain=None, key_fname='.sesskey',
                  body_wrap=noop_body, htmlkw=None, nb_hdrs=False, canonical=True, **bodykw):
         middleware,before,after = map(_list, (middleware,before,after))
         self.title,self.canonical,self.session_cookie,self.key_fname = title,canonical,session_cookie,key_fname
+        self.htmx4 = htmx4
         hdrs,ftrs,exts = map(listify, (hdrs,ftrs,exts))
+        if htmx4 and exts:
+            exts = ['ws4' if e in ('ws', 'ws4') else 'sse4' if e in ('sse', 'sse4') else e for e in exts]
         exts = {k:htmx_exts[k] for k in exts}
         htmlkw = htmlkw or {}
-        if default_hdrs: hdrs = def_hdrs(htmx, surreal=surreal) + hdrs
+        if default_hdrs: hdrs = def_hdrs(htmx, htmx4, surreal=surreal) + hdrs
         hdrs += [Script(src=ext) for ext in exts.values()]
         if IN_NOTEBOOK:
-            hdrs.append(iframe_scr)
+            hdrs.append(iframe_scr) # TODO: check iframe_scr work with htmx4
             from IPython.display import display,HTML
             if nb_hdrs: display(HTML(to_xml(tuple(hdrs))))
             middleware.append(cors_allow)
@@ -619,8 +634,8 @@ class FastHTML(Starlette):
         self.secret_key = get_key(secret_key, key_fname)
         if sess_cls:
             sess = Middleware(sess_cls, secret_key=self.secret_key,session_cookie=session_cookie,
-                              max_age=max_age, path=sess_path, same_site=same_site,
-                              https_only=sess_https_only, domain=sess_domain)
+                                max_age=max_age, path=sess_path, same_site=same_site,
+                                https_only=sess_https_only, domain=sess_domain)
             middleware.append(sess)
         exception_handlers = ifnone(exception_handlers, {})
         if 404 not in exception_handlers:
