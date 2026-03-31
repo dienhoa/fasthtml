@@ -167,10 +167,10 @@ def run_js(js, id=None, **kw):
     return Script(js.format(**kw), id=id, hx_swap_oob='true')
 
 # %% ../nbs/api/02_xtend.ipynb #365f57a8
-def HtmxOn(eventname:str, code:str):
+def HtmxOn(eventname:str, code:str, metaChar=':'):
     return Script('''domReadyExecute(function() {
-document.body.addEventListener("htmx:%s", function(event) { %s })
-})''' % (eventname, code))
+document.body.addEventListener("htmx%s%s", function(event) { %s })
+})''' % (metaChar, eventname, code))
 
 # %% ../nbs/api/02_xtend.ipynb #39f20784
 def jsd(org, repo, root, path, prov='gh', typ='script', ver=None, esm=False, **kwargs)->FT:

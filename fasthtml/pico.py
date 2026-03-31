@@ -4,7 +4,7 @@
 
 # %% auto #0
 __all__ = ['picocss', 'picolink', 'picocondcss', 'picocondlink', 'set_pico_cls', 'Card', 'Group', 'Search', 'Grid', 'DialogX',
-           'Container', 'PicoBusy', 'PicoBusy4']
+           'Container', 'PicoBusy']
 
 # %% ../nbs/api/04_pico.ipynb #8e2d405b
 from typing import Any
@@ -84,13 +84,9 @@ def Container(*args, **kwargs)->FT:
     "A PicoCSS Container, implemented as a Main with class 'container'"
     return Main(*args, cls="container", **kwargs)
 
-# %% ../nbs/api/04_pico.ipynb #138dc298
-def PicoBusy():
-    return (HtmxOn('beforeRequest', "event.detail.elt.setAttribute('aria-busy', 'true' )"),
-            HtmxOn('afterRequest',  "event.detail.elt.setAttribute('aria-busy', 'false')"))
-
-# %% ../nbs/api/04_pico.ipynb #8f83e9ea
-def PicoBusy4():
-    "PicoBusy for hx 4, with new event names and object structure"
-    return (HtmxOn('before:request', "event.detail.ctx.sourceElement.setAttribute('aria-busy', 'true' )"),
-            HtmxOn('after:request',  "event.detail.ctx.sourceElement.setAttribute('aria-busy', 'false')"))
+# %% ../nbs/api/04_pico.ipynb #b8c98614
+def PicoBusy(htmx4=False, metaChar=':'):
+    evt = (f'before{metaChar}request', f'after{metaChar}request') if htmx4 else ('beforeRequest', 'afterRequest')
+    elt = 'event.detail.ctx.sourceElement' if htmx4 else 'event.detail.elt'
+    return (HtmxOn(evt[0], f"{elt}.setAttribute('aria-busy', 'true' )", metaChar=metaChar),
+            HtmxOn(evt[1], f"{elt}.setAttribute('aria-busy', 'false')", metaChar=metaChar))
