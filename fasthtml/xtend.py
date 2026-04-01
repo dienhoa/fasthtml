@@ -255,9 +255,11 @@ function addSid(url, sid) {
     u.searchParams.set('sid', sid);
     return u.pathname + u.search;
 }
+                 
+const mc = htmx.config?.metaCharacter || ':';
 
 htmx.on("htmx:configRequest",  (e) => { const sid = sessionStorage.getItem("sid"); if (sid) e.detail.path = addSid(e.detail.path, sid); }); // htmx v2
-htmx.on("htmx:config:request", (e) => { const sid = sessionStorage.getItem("sid"); if (sid) e.detail.ctx.request.action = addSid(e.detail.ctx.request.action, sid); }); // htmx v4
+htmx.on(`htmx${mc}config${mc}request`, (e) => { const sid = sessionStorage.getItem("sid"); if (sid) e.detail.ctx.request.action = addSid(e.detail.ctx.request.action, sid); }); // htmx v4
 """)
 
 # %% ../nbs/api/02_xtend.ipynb #579e1f33
