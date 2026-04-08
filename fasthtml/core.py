@@ -556,13 +556,13 @@ def def_hdrs(htmx=True, htmx4=False, surreal=True):
     "Default headers for a FastHTML app"
     hdrs = []
     if surreal: hdrs = [surrsrc,scopesrc] + hdrs
-    if htmx and htmx4: raise ValueError("Cannot enable both htmx and htmx4")
-    if htmx: hdrs = [htmxsrc,fhjsscr] + hdrs
     if htmx4: 
         # metaCharacter="-" makes htmx4 use dashes instead of colons
         meta_cfg = Meta(name="htmx-config", content=json.dumps({"metaCharacter": "-"}))
         hdrs = [meta_cfg, htmx4src,fhjsscr] + hdrs 
-    # TODO: Check if fhjsscr works with htmx4
+        # TODO: Check if fhjsscr works with htmx4
+    elif htmx:
+        hdrs = [htmxsrc,fhjsscr] + hdrs
     return [charset, viewport] + hdrs
 
 # %% ../nbs/api/00_core.ipynb #2c5285ae
@@ -610,7 +610,7 @@ class Lifespan:
 class FastHTML(Starlette):
     def __init__(self, debug=False, routes=None, middleware=None, title: str = "FastHTML page", exception_handlers=None,
                  on_startup=None, on_shutdown=None, lifespan=None, hdrs=None, ftrs=None, exts=None,
-                 before=None, after=None, surreal=True, htmx=True, htmx4=True, default_hdrs=True, sess_cls=SessionMiddleware,
+                 before=None, after=None, surreal=True, htmx=True, htmx4=False, default_hdrs=True, sess_cls=SessionMiddleware,
                  secret_key=None, session_cookie='session_', max_age=365*24*3600, sess_path='/',
                  same_site='lax', sess_https_only=False, sess_domain=None, key_fname='.sesskey',
                  body_wrap=noop_body, htmlkw=None, nb_hdrs=False, canonical=True, **bodykw):
