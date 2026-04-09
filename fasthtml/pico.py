@@ -85,7 +85,8 @@ def Container(*args, **kwargs)->FT:
     return Main(*args, cls="container", **kwargs)
 
 # %% ../nbs/api/04_pico.ipynb #b8c98614
-def PicoBusy(htmx4=False, metaChar=':'):
+def PicoBusy(htmx4=False, metaChar=None):
+    if metaChar is None: metaChar = '-' if htmx4 else ':'
     evt = (f'before{metaChar}request', f'after{metaChar}request') if htmx4 else ('beforeRequest', 'afterRequest')
     elt = 'event.detail.ctx.sourceElement' if htmx4 else 'event.detail.elt'
     return (HtmxOn(evt[0], f"{elt}.setAttribute('aria-busy', 'true' )", metaChar=metaChar),
