@@ -89,5 +89,5 @@ def PicoBusy(htmx4=False, metaChar=None):
     if metaChar is None: metaChar = '-' if htmx4 else ':'
     evt = (f'before{metaChar}request', f'after{metaChar}request') if htmx4 else ('beforeRequest', 'afterRequest')
     elt = 'event.detail.ctx.sourceElement' if htmx4 else 'event.detail.elt'
-    return (HtmxOn(evt[0], f"{elt}.setAttribute('aria-busy', 'true' )", metaChar=metaChar),
-            HtmxOn(evt[1], f"{elt}.setAttribute('aria-busy', 'false')", metaChar=metaChar))
+    return (HtmxOn(evt[0], f"{elt}.setAttribute('aria-busy', 'true' )", htmx4=htmx4),
+            HtmxOn(evt[1], f"{elt}.setAttribute('aria-busy', 'false')", htmx4=htmx4))

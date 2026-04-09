@@ -167,7 +167,8 @@ def run_js(js, id=None, **kw):
     return Script(js.format(**kw), id=id, hx_swap_oob='true')
 
 # %% ../nbs/api/02_xtend.ipynb #365f57a8
-def HtmxOn(eventname:str, code:str, metaChar=':'):
+def HtmxOn(eventname:str, code:str, htmx4=False, metaChar=None):
+    if metaChar is None: metaChar = '-' if htmx4 else ':'
     return Script('''domReadyExecute(function() {
 document.body.addEventListener("htmx%s%s", function(event) { %s })
 })''' % (metaChar, eventname, code))
