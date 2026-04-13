@@ -1,10 +1,10 @@
-# FastHTML upgrade from htmx2 to htmx4
+# FastHTML Upgrade from htmx2 to htmx4
 
-This document is for summarizing what one need to do to upgrade their fasthtml code base from htmxv2 to htmx v4. For the full htmx-level migration details, see: https://four.htmx.org/docs/get-started/migration
+This document summarizes what you need to do to upgrade a FastHTML codebase from htmx v2 to htmx v4. For full htmx migration details, see: https://four.htmx.org/docs/get-started/migration
 
 ## What's New
 
-FastHTML now supports htmx v4 via `htmx4=True`. Key changes at the FastHTML level:
+FastHTML now supports htmx v4 via `htmx4=True`. Here are the key changes at the FastHTML level:
 
 | Area | htmx v2 (default) | htmx v4 (`htmx4=True`) |
 |------|-------------------|------------------------|
@@ -25,7 +25,7 @@ FastHTML now supports htmx v4 via `htmx4=True`. Key changes at the FastHTML leve
 
 ### MetaCharacter
 
-htmx v4 uses `:` as a separator in attribute and event names (e.g. `hx-ws:connect`, `htmx:before:request`). Since colons can't be used in Python keyword arguments, FastHTML sets `metaCharacter="-"` which replaces all `:` with `-`.
+htmx v4 uses `:` as a separator in attribute and event names (for example, `hx-ws:connect` and `htmx:before:request`). Since colons cannot be used in Python keyword arguments, FastHTML sets `metaCharacter="-"`, which replaces all `:` characters with `-`.
 
 The full conversion chain:
 
@@ -35,11 +35,11 @@ The full conversion chain:
 | With `metaCharacter="-"` | `htmx-before-request` |
 | FastHTML Python (`_` → `-`) | `htmx_before_request` |
 
-This is configured automatically when you use `htmx4=True`.
+This is configured automatically when you set `htmx4=True`.
 
 ### Renamed Events
 
-All events follow a new pattern: `htmx:phase:action[:sub-action]`
+All events now follow this pattern: `htmx:phase:action[:sub-action]`
 
 Sources: [htmx v4 migration guide: Renamed events](https://four.htmx.org/docs/get-started/migration#renamed-events), [htmx upgrade guide: Step 5 event listeners](https://github.com/bigskysoftware/htmx/blob/four/src/skills/htmx-upgrade-from-htmx2.md#step-5-update-event-listeners)
 
@@ -101,7 +101,7 @@ def PicoBusy(htmx4=False, metaChar=None):
 
 ## Partial
 
-htmx v4 introduces `HxPartial` (`<hx-partial>`) to update elements **outside the primary swap target**. Each `HxPartial` specifies its own `hx_target`, making targeting more explicit than OOB. `hx_swap_oob=True` still works in v4 for simple same-ID replacement.
+htmx v4 introduces `HxPartial` (`<hx-partial>`) for updating elements **outside the primary swap target**. Each `HxPartial` specifies its own `hx_target`, which makes targeting more explicit than OOB. `hx_swap_oob=True` still works in v4 for simple same-ID replacement.
 
 ```python
 # Update primary target + another element
@@ -116,7 +116,7 @@ return Div("main content"), HxPartial(Div("sidebar update"), hx_target="#sidebar
 
 ## Attribute Inheritance
 
-In v2, attributes like `hx-target`, `hx-swap`, `hx-boost` inherited implicitly from parent elements. In v4, inheritance is **off by default** — use the `:inherited` modifier. With `metaCharacter="-"`, this becomes `_inherited` in FastHTML:
+In v2, attributes like `hx-target`, `hx-swap`, and `hx-boost` were inherited implicitly from parent elements. In v4, inheritance is **off by default**; use the `:inherited` modifier instead. With `metaCharacter="-"`, this becomes `_inherited` in FastHTML:
 
 ```python
 # v2: children inherit hx_target from parent automatically
@@ -166,7 +166,7 @@ async def handle(htmx: HtmxHeaders):
     print(htmx.source, htmx.target, htmx.request_type)
 ```
 
-**Note:** `hx-trigger` the *HTML attribute* is unchanged, only the *request header* was renamed.
+**Note:** `hx-trigger`, the *HTML attribute*, is unchanged; only the *request header* was renamed.
 
 ---
 
@@ -176,7 +176,7 @@ async def handle(htmx: HtmxHeaders):
 
 | v2 | v4 | Notes |
 |----|-----|-------|
-| `hx_ext='ws'` | *(remove)* | Extension auto-registers when script is loaded |
+| `hx_ext='ws'` | *(remove)* | The extension auto-registers when the script is loaded |
 | `ws_connect='/endpoint'` | `hx_ws_connect='/endpoint'` | |
 | `ws_send=True` | `hx_ws_send=True` | |
 
@@ -204,7 +204,7 @@ async def ws(msg: str, send):
 | Form fields at root: `data['msg']` | Nested under `values`: `data['values']['msg']` |
 | Headers as `data['HEADERS']` | Headers as `data['headers']` (lowercase) |
 
-Although htmx v4 WS supports a JSON envelope format for server→client messages too, FastHTML sends raw HTML for compatibility with htmx v2.
+Although htmx v4 WebSocket support also includes a JSON envelope format for server-to-client messages, FastHTML sends raw HTML for compatibility with htmx v2.
 
 ---
 
@@ -227,7 +227,7 @@ Div(hx_sse_connect="/stream")
 
 ### `sse_message`
 
-In v4, the `event:` line must be omitted for default swaps — including it triggers a custom DOM event instead. Pass `htmx4=True`:
+In v4, the `event:` line must be omitted for default swaps; including it triggers a custom DOM event instead. Pass `htmx4=True`:
 
 ```python
 # v2
