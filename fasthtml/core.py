@@ -569,11 +569,24 @@ iframe_scr = Script(NotStr("""
     function sendmsg() {
         window.parent.postMessage({height: document.documentElement.offsetHeight}, '*');
     }
+
     window.onload = function() {
         sendmsg();
-        document.body.addEventListener('htmx:afterSettle',    sendmsg);
-        document.body.addEventListener('htmx:wsAfterMessage', sendmsg);
-    };"""))
+
+        const ver = window.htmx?.version || '';
+        const isV4 = ver.startsWith('4.');
+        const mc = window.htmx?.config?.metaCharacter || ':';
+
+        if (isV4) {
+            document.body.addEventListener(`htmx${mc}after${mc}swap`, sendmsg);
+            document.body.addEventListener(`htmx${mc}after${mc}ws${mc}message`, sendmsg);
+        } else {
+            document.body.addEventListener('htmx:afterSettle', sendmsg);
+            document.body.addEventListener('htmx:wsAfterMessage', sendmsg);
+        }
+    };
+"""))
+
 
 # %% ../nbs/api/00_core.ipynb #17ced9a3
 class _LifespanCtx:
